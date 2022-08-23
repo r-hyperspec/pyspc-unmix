@@ -1,0 +1,22 @@
+[tool.poetry]
+name = "fast-nfindr"
+version = "0.1.0"
+description = "Faster implementation of N-FINDR algorithm"
+authors = ["Rustam Giuliev <glvrst@gmail.com>"]
+license = "MIT"
+
+[tool.poetry.dependencies]
+python = "^3.8"
+
+[tool.poetry.dev-dependencies]
+pytest = "^7.1.2"
+black = "^22.6.0"
+isort = "^5.10.1"
+flake8 = "^5.0.4"
+autoflake = "^1.4"
+pre-commit = "^2.20.0"
+ipython = "^8.4.0"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"

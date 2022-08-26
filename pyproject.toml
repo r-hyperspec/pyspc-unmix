@@ -1,7 +1,7 @@
 [tool.poetry]
-name = "fast-nfindr"
+name = "pyspc-unmix"
 version = "0.1.0"
-description = "Faster implementation of N-FINDR algorithm"
+description = "Python package for unmixing hyperspectral data"
 authors = ["Rustam Giuliev <glvrst@gmail.com>"]
 license = "MIT"
 

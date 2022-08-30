@@ -1,7 +1,9 @@
+import random
+
 import numpy as np
 import pytest
 
-from pyspc_unmix.nfindr import _estimate_volume_change, nfindr
+from pyspc_unmix.nfindr import _estimate_volume_change, nfindr, NFINDR
 from pyspc_unmix.simplex import _inner_simplex_points, simplex_volume
 
 
@@ -93,3 +95,51 @@ def test_nfindr(simplex_points):
         [5, 4, 2],
         [5, 4, 3],
     ]
+
+
+def test_nfindr_class_fit(simplex_points):
+    vertices = [[-5, 0], [0, 4], [10, 0]]
+    X = _inner_simplex_points(vertices, high=0.4)
+
+    nf = NFINDR()
+    nf.fit(np.vstack((vertices, X)))
+    assert nf.endmember_indecies_ == list(range(3))
+    np.testing.assert_array_equal(nf.endmembers_, vertices)
+
+    initial_indices = random.sample(range(len(X)), 3)
+    nf = NFINDR(initial_indecies=initial_indices)
+    nf.fit(X)
+    assert nf.endmember_indecies_ == nfindr(X, indices=initial_indices)
+    np.testing.assert_array_equal(nf.endmembers_, X[nf.endmember_indecies_, :])
+
+    # The result is different if random state is not provided
+    nf1 = NFINDR()
+    nf2 = NFINDR()
+    nf1.fit(X)
+    nf2.fit(X)
+    assert nf1.initial_indecies_ != nf2.initial_indecies_
+
+    # The result is stable if random state is provided
+    nf1 = NFINDR(random_state=0)
+    nf2 = NFINDR(random_state=0)
+    nf1.fit(X)
+    nf2.fit(X)
+    assert nf1.initial_indecies_ == nf2.initial_indecies_
+    assert nf1.endmember_indecies_ == nf2.endmember_indecies_
+
+
+def test_nfindr_class_transform(simplex_points):
+    nf = NFINDR()
+    X = simplex_points
+
+    # check the shape of fit.transform
+    X_r = nf.fit(X).transform(X)
+    assert X_r.shape[0] == len(X)
+    assert X_r.shape[1] == 3
+
+    # check the equivalence of fit.transform and fit_transform
+    X_r2 = nf.fit_transform(X)
+    np.testing.assert_array_almost_equal(X_r, X_r2)
+
+    X_r = nf.transform(X)
+    np.testing.assert_array_almost_equal(X_r, X_r2)

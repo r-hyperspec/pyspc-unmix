@@ -1,11 +1,12 @@
-import random
 from typing import List, Optional, Tuple, Union
 from warnings import warn
 
 import numpy as np
 from numpy.typing import ArrayLike
+from scipy.optimize import nnls
+from sklearn.utils import check_random_state
 
-from .simplex import _pad_ones, _simplex_E
+from .simplex import _pad_ones, _simplex_E, simplex_volume
 
 
 def _estimate_volume_change(
@@ -115,7 +116,7 @@ def nfindr(
 
     # Get initial indices
     if indices is None:
-        indices = random.sample(range(m), p)
+        indices = np.random.choice(range(m), p, replace=False)
 
     n_iters = 0
     is_replacement = True
@@ -153,3 +154,210 @@ def nfindr(
         return indices_best, replacements
 
     return indices_best
+
+
+from sklearn.base import BaseEstimator, TransformerMixin, _OneToOneFeatureMixin
+from sklearn.utils.validation import check_is_fitted
+
+
+class NFINDR(_OneToOneFeatureMixin, TransformerMixin, BaseEstimator):
+    """NFINDR unmixing algorithm
+
+    Finds the endmembers using NFINDR algorithm. Given the endmebers, decompose
+    the data to the endmembers coefficiens using non-negative least squares (NNLS).
+    The data expected to be with already reduced dimension.
+
+    Parameters
+    ----------
+    n_endmembers : int, default=None
+        Number of endmembers to find.
+
+    initial_indecies : List[int], default=None
+        List of row indecies to be used as initial points for NFINDR
+
+    random_state : int, RandomState instance or None, default=None
+        Pass an int for reproducible results across multiple function calls.
+        Works the same as random_state in `sklearn.decomposition.PCA`
+
+    Attributes
+    ----------
+    endmembers_ : ndarray of shape (n_endmembers, n_endmembers-1)
+        Matrix of vertex points found by NFINDR algorithm
+
+    initial_indecies_ : List[int] of len (n_endmembers,)
+        List of initial points indecies.
+
+    endmember_indecies_ : List[int] of len (n_endmembers,)
+        List of final endmember points indecies.
+
+    n_samples_ : int
+        Number of samples in the training data.
+
+    n_endmembers_ : int
+        Number of endmembers estimated during the training. I.e. either number of
+        columns in the training data + 1 or explicitly provided `n_endmembers`
+
+    volume_ : float
+        The volume of the simplex fomed by `endmembers_` vertex points
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> from pyspc_unmix import NFINDR
+    >>> X = np.array([[-1, -1], [-2, -1], [-3, -2], [1, 1], [2, 1], [3, 2]])
+    >>> nf = NFINDR()
+    >>> nf.fit(X)
+    NFINDR()
+    >>> print(nf.endmembers_)
+    [[-1. -1.]
+     [-2. -1.]
+     [ 3.  2.]]
+    >>> print(nf.transform(X))
+    [[1.00000000e+00 0.00000000e+00 7.85046229e-17]
+     [0.00000000e+00 1.00000000e+00 0.00000000e+00]
+     [1.00000000e+00 1.00000000e+00 0.00000000e+00]
+     [0.00000000e+00 1.00000000e+00 1.00000000e+00]
+     [1.00000000e+00 0.00000000e+00 1.00000000e+00]
+     [0.00000000e+00 0.00000000e+00 1.00000000e+00]]
+    """
+
+    def __init__(
+        self,
+        n_endmembers=None,
+        initial_indecies=None,
+        random_state=None,
+    ) -> None:
+        self.n_endmembers = n_endmembers
+        self.initial_indecies = initial_indecies
+        self.random_state = random_state
+
+    def fit(self, X, y=None):
+        """Fit the model with X.
+
+        Parameters
+        ----------
+        X : array-like of shape (n_samples, n_features)
+            Training data, where `n_samples` is the number of samples
+            and `n_features` is the number of features.
+
+        y : Ignored
+            Ignored.
+
+        Returns
+        -------
+        self : object
+            Returns the instance itself.
+        """
+
+        X = self._validate_data(X, dtype=[np.float64, np.float32], ensure_2d=True)
+
+        n_samples, n_features = X.shape
+
+        n_endmembers = self.n_endmembers or (n_features + 1)
+
+        if n_endmembers > n_features + 1:
+            raise ValueError(
+                "Dimension of data is too high. Please, reduce it (e.g. by PCA) "
+                "or use `fit_transform` to directly reduce the dimensionality and "
+                "apply NFINDR"
+            )
+        elif n_endmembers < n_features + 1:
+            raise ValueError(
+                "Dimension of the data is too low. "
+                "Please consider reducing the number of components"
+            )
+
+        if self.initial_indecies is None:
+            random_state: np.random.RandomState = check_random_state(self.random_state)
+            initial_indecies = random_state.choice(
+                range(n_samples), n_endmembers, replace=False
+            )
+        else:
+            initial_indecies = self.initial_indecies
+
+        endmember_indecies = nfindr(X[:, : (n_endmembers - 1)], initial_indecies)
+        self.endmember_indecies_ = endmember_indecies
+        self.endmembers_ = X[endmember_indecies, :]
+        self.n_endmembers_ = n_endmembers
+        self.initial_indecies_ = list(initial_indecies)
+        self.n_samples_ = n_samples
+        self.volume_ = simplex_volume(self.endmembers_)
+
+        return self
+
+    def transform(self, X):
+        """Transform X to endmembers coefficients.
+
+        X is converted to coefficients of previously found endmembers
+
+        Parameters
+        ----------
+        X : array-like of shape (n_samples, n_features)
+            New data, where `n_samples` is the number of samples
+            and `n_features` is the number of features.
+
+        Returns
+        -------
+        X_new : array-like of shape (n_samples, n_endmembers)
+            Decomposition of X to the endmember coefficients, where `n_samples`
+            is the number of samples and `n_endmembers` is the number of the endmembers
+
+        Notes
+        -----
+        The same pre-treatment (e.g. PCA) must be applied to the X as it was for
+        the data used for fitting.
+        """
+        check_is_fitted(self)
+
+        X = self._validate_data(X, dtype=[np.float64, np.float32], reset=False)
+
+        X_transformed = np.apply_along_axis(
+            lambda x: nnls(self.endmembers_.T, x)[0],
+            1,
+            X[:, : (self.n_endmembers_ - 1)],
+        )
+        return X_transformed
+
+    def inverse_transform(self, X):
+        """Transform data back to its original space.
+
+        In other words, return an input `X_original` whose transform would be X.
+
+        Parameters
+        ----------
+        X : array-like of shape (n_samples, n_endmembers)
+            New data, where `n_samples` is the number of samples
+            and `n_endmembers` is the number of endmembers.
+
+        Returns
+        -------
+        X_original array-like of shape (n_samples, n_features)
+            Original data, where `n_samples` is the number of samples
+            and `n_features` is the number of features.
+        """
+        return np.array(X) @ self.endmembers_
+
+    def fit_transform(self, X, y=None):
+        """Fit the model with X and apply unmixing on X.
+
+        Parameters
+        ----------
+        X : array-like of shape (n_samples, n_features)
+            Training data, where `n_samples` is the number of samples
+            and `n_features` is the number of features.
+
+        y : Ignored
+            Ignored.
+
+        Returns
+        -------
+        X_new : ndarray of shape (n_samples, n_endmembers)
+            Transformed values.
+        """
+        self.fit(X)
+        return self.transform(X)
+
+    @property
+    def _n_features_out(self):
+        """Number of transformed output features."""
+        return self.endmembers_.shape[0]

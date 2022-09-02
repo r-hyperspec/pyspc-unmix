@@ -6,7 +6,7 @@ from numpy.typing import ArrayLike
 from scipy.optimize import nnls
 from sklearn.utils import check_random_state
 
-from .simplex import _pad_ones, _simplex_E, simplex_volume
+from .simplex import _pad_ones, _simplex_E, cart2bary, simplex_volume
 
 
 def _estimate_volume_change(
@@ -285,7 +285,7 @@ class NFINDR(_OneToOneFeatureMixin, TransformerMixin, BaseEstimator):
 
         return self
 
-    def transform(self, X):
+    def transform(self, X, method="barycentric"):
         """Transform X to endmembers coefficients.
 
         X is converted to coefficients of previously found endmembers
@@ -311,11 +311,21 @@ class NFINDR(_OneToOneFeatureMixin, TransformerMixin, BaseEstimator):
 
         X = self._validate_data(X, dtype=[np.float64, np.float32], reset=False)
 
-        X_transformed = np.apply_along_axis(
-            lambda x: nnls(self.endmembers_.T, x)[0],
-            1,
-            X[:, : (self.n_endmembers_ - 1)],
-        )
+        if method == "barycentric":
+            X_transformed = cart2bary(
+                X[:, : (self.n_endmembers_ - 1)], self.endmembers_
+            )
+        elif method == "nnls":
+            X_transformed = np.apply_along_axis(
+                lambda x: nnls(self.endmembers_.T, x)[0],
+                axis=1,
+                arr=X[:, : (self.n_endmembers_ - 1)],
+            )
+        else:
+            raise ValueError(
+                f"Unexpected method '{method}'. Must be either 'barycentric' or 'nnls'."
+            )
+
         return X_transformed
 
     def inverse_transform(self, X):

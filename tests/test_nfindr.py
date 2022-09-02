@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 
 from pyspc_unmix.nfindr import _estimate_volume_change, nfindr, NFINDR
-from pyspc_unmix.simplex import _inner_simplex_points, simplex_volume
+from pyspc_unmix.simplex import _inner_simplex_points, cart2bary, simplex_volume
 
 
 @pytest.fixture
@@ -143,3 +143,44 @@ def test_nfindr_class_transform(simplex_points):
 
     X_r = nf.transform(X)
     np.testing.assert_array_almost_equal(X_r, X_r2)
+
+
+def test_nfindr_class_transform_barycentric():
+    vertices = np.array([[0, 0], [1, 0], [0, 1]])
+    points = np.array([[0.5, 0.5], [0.1, 0.2], [0.7, 0.1], [1.0, 1.0]])
+
+    nf = NFINDR()
+    nf.fit(vertices)
+    assert nf.endmember_indecies_ == [0, 1, 2]
+    np.testing.assert_array_equal(nf.endmembers_, vertices)
+
+    coords = nf.transform(points)
+    np.testing.assert_array_almost_equal(coords, cart2bary(points, vertices))
+
+    # Barycentric coordinates is default
+    coords2 = nf.transform(points, method="barycentric")
+    np.testing.assert_array_equal(coords2, coords2)
+
+    # Add a shift
+    shift = np.array([10, 20])
+
+    nf.fit(vertices + shift)
+    assert nf.endmember_indecies_ == [0, 1, 2]
+    np.testing.assert_array_equal(nf.endmembers_, vertices + shift)
+
+    coords = nf.transform(points + shift)
+    np.testing.assert_array_almost_equal(coords, cart2bary(points, vertices))
+
+
+def test_nfindr_class_transform_nnls():
+    vertices = np.array([[0, 0], [1, 0], [0, 1]])
+    points = np.array([[0.5, 0.5], [0.1, 0.2], [0.7, 0.1], [1.0, 1.0]])
+    coords = NFINDR().fit(vertices).transform(points, method="nnls")
+    np.testing.assert_array_almost_equal(
+        coords, np.hstack((np.zeros((len(points), 1)), points))
+    )
+
+    vertices = np.array([[1, 1], [3, 1], [1, 3]])
+    points = np.array([[2, 2], [3, 3]])
+    coords = NFINDR().fit(vertices).transform(points, method="nnls")
+    np.testing.assert_array_almost_equal(coords, [[0, 0.5, 0.5], [0, 0.75, 0.75]])

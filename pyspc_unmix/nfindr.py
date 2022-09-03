@@ -23,12 +23,12 @@ def _estimate_volume_change(
     x : ArrayLike
         Matrix of M points in N-dimensional space
     indices : List[int]
-        N+1 indecies of the initial endmembers
+        N+1 indices of the initial endmembers
     endmembers : Optional[Union[int, List[int]]], optional
-        One or list of endmember indecies for replacement, by default all endmembers,
+        One or list of endmember indices for replacement, by default all endmembers,
         i.e. `range(N+1)`
     new_indices : Optional[Union[int, List[int]]], optional
-        One or list of point indecies for replacement, by default all points,
+        One or list of point indices for replacement, by default all points,
         i.e. `range(M)`
     Einv : Optional[np.ndarray], optional
         Pre-calculated inversed E matrix for faster calculation, by default None
@@ -172,8 +172,8 @@ class NFINDR(_OneToOneFeatureMixin, TransformerMixin, BaseEstimator):
     n_endmembers : int, default=None
         Number of endmembers to find.
 
-    initial_indecies : List[int], default=None
-        List of row indecies to be used as initial points for NFINDR
+    initial_indices : List[int], default=None
+        List of row indices to be used as initial points for NFINDR
 
     random_state : int, RandomState instance or None, default=None
         Pass an int for reproducible results across multiple function calls.
@@ -184,11 +184,11 @@ class NFINDR(_OneToOneFeatureMixin, TransformerMixin, BaseEstimator):
     endmembers_ : ndarray of shape (n_endmembers, n_endmembers-1)
         Matrix of vertex points found by NFINDR algorithm
 
-    initial_indecies_ : List[int] of len (n_endmembers,)
-        List of initial points indecies.
+    initial_indices_ : List[int] of len (n_endmembers,)
+        List of initial points indices.
 
-    endmember_indecies_ : List[int] of len (n_endmembers,)
-        List of final endmember points indecies.
+    endmember_indices_ : List[int] of len (n_endmembers,)
+        List of final endmember points indices.
 
     n_samples_ : int
         Number of samples in the training data.
@@ -224,11 +224,11 @@ class NFINDR(_OneToOneFeatureMixin, TransformerMixin, BaseEstimator):
     def __init__(
         self,
         n_endmembers=None,
-        initial_indecies=None,
+        initial_indices=None,
         random_state=None,
     ) -> None:
         self.n_endmembers = n_endmembers
-        self.initial_indecies = initial_indecies
+        self.initial_indices = initial_indices
         self.random_state = random_state
 
     def fit(self, X, y=None):
@@ -267,19 +267,19 @@ class NFINDR(_OneToOneFeatureMixin, TransformerMixin, BaseEstimator):
                 "Please consider reducing the number of components"
             )
 
-        if self.initial_indecies is None:
+        if self.initial_indices is None:
             random_state: np.random.RandomState = check_random_state(self.random_state)
-            initial_indecies = random_state.choice(
+            initial_indices = random_state.choice(
                 range(n_samples), n_endmembers, replace=False
             )
         else:
-            initial_indecies = self.initial_indecies
+            initial_indices = self.initial_indices
 
-        endmember_indecies = nfindr(X[:, : (n_endmembers - 1)], initial_indecies)
-        self.endmember_indecies_ = endmember_indecies
-        self.endmembers_ = X[endmember_indecies, :]
+        endmember_indices = nfindr(X[:, : (n_endmembers - 1)], initial_indices)
+        self.endmember_indices_ = endmember_indices
+        self.endmembers_ = X[endmember_indices, :]
         self.n_endmembers_ = n_endmembers
-        self.initial_indecies_ = list(initial_indecies)
+        self.initial_indices_ = list(initial_indices)
         self.n_samples_ = n_samples
         self.volume_ = simplex_volume(self.endmembers_)
 

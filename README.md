@@ -84,7 +84,7 @@ nf = NFINDR(n_endmembers=3, random_state=21)
 nf.fit(x)
 
 # See found endmembers
-print(true_coefs[nf.endmember_indecies_,:])
+print(true_coefs[nf.endmember_indices_,:])
 # array([[0., 0., 1.], 
 #       [1., 0., 0.], 
 #       [0., 1., 0.]])

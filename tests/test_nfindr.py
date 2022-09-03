@@ -103,29 +103,29 @@ def test_nfindr_class_fit(simplex_points):
 
     nf = NFINDR()
     nf.fit(np.vstack((vertices, X)))
-    assert nf.endmember_indecies_ == list(range(3))
+    assert nf.endmember_indices_ == list(range(3))
     np.testing.assert_array_equal(nf.endmembers_, vertices)
 
     initial_indices = random.sample(range(len(X)), 3)
-    nf = NFINDR(initial_indecies=initial_indices)
+    nf = NFINDR(initial_indices=initial_indices)
     nf.fit(X)
-    assert nf.endmember_indecies_ == nfindr(X, indices=initial_indices)
-    np.testing.assert_array_equal(nf.endmembers_, X[nf.endmember_indecies_, :])
+    assert nf.endmember_indices_ == nfindr(X, indices=initial_indices)
+    np.testing.assert_array_equal(nf.endmembers_, X[nf.endmember_indices_, :])
 
     # The result is different if random state is not provided
     nf1 = NFINDR()
     nf2 = NFINDR()
     nf1.fit(X)
     nf2.fit(X)
-    assert nf1.initial_indecies_ != nf2.initial_indecies_
+    assert nf1.initial_indices_ != nf2.initial_indices_
 
     # The result is stable if random state is provided
     nf1 = NFINDR(random_state=0)
     nf2 = NFINDR(random_state=0)
     nf1.fit(X)
     nf2.fit(X)
-    assert nf1.initial_indecies_ == nf2.initial_indecies_
-    assert nf1.endmember_indecies_ == nf2.endmember_indecies_
+    assert nf1.initial_indices_ == nf2.initial_indices_
+    assert nf1.endmember_indices_ == nf2.endmember_indices_
 
 
 def test_nfindr_class_transform(simplex_points):
@@ -151,7 +151,7 @@ def test_nfindr_class_transform_barycentric():
 
     nf = NFINDR()
     nf.fit(vertices)
-    assert nf.endmember_indecies_ == [0, 1, 2]
+    assert nf.endmember_indices_ == [0, 1, 2]
     np.testing.assert_array_equal(nf.endmembers_, vertices)
 
     coords = nf.transform(points)
@@ -165,7 +165,7 @@ def test_nfindr_class_transform_barycentric():
     shift = np.array([10, 20])
 
     nf.fit(vertices + shift)
-    assert nf.endmember_indecies_ == [0, 1, 2]
+    assert nf.endmember_indices_ == [0, 1, 2]
     np.testing.assert_array_equal(nf.endmembers_, vertices + shift)
 
     coords = nf.transform(points + shift)

@@ -15,6 +15,7 @@ pip install git+https://github.com/r-hyperspec/pyspc-unmix
 
 # Example
 
+## Prepare pure-mixture dataset
 Generate pure signals
 ```python
 import numpy as np
@@ -37,7 +38,6 @@ ax.plot(x, y3, "b-.")
 plt.show()
 ```
 ![Figure_1](https://user-images.githubusercontent.com/9852534/188256343-e4a642fb-e670-4433-b5f1-0d4f584f9023.png)
-
 
 
 Mix the pure signals
@@ -72,7 +72,7 @@ plt.show()
 ![Figure_2](https://user-images.githubusercontent.com/9852534/188256425-86057096-ae6e-41fb-99b8-c36ba136f637.png)
 
 
-Apply NFINDR
+## Apply NFINDR: Basic example
 
 ```python
 # First, reduce dimension with PCA
@@ -107,7 +107,7 @@ print(np.round(nfindr_coefs[:5,:],2))
 
 ```
 
-## Pipline interface
+## Apply NFINDR: Pipline interface
 ```python
 from sklearn.pipeline import Pipeline
 
@@ -121,4 +121,65 @@ print(np.round(nfindr_coefs[:5,:],2))
 #        [0.  , 0.67, 0.33],
 #        [0.2 , 0.2 , 0.6 ],
 #        [0.6 , 0.4 , 0.  ]])
+```
+
+
+## Apply NFINDR: Out-of-simplex points and Barycentric vs. NNLS
+
+Using NFINDR algorithm one should take care of the points out of the simplex since in
+real-world application the data rarely looks like a perfect simplex. In the following
+examples it will be demonstrated how the two availalbe transformations (barycentric
+and NNLS) behave in those cases.
+
+```python
+# Prepare a simple simplex and points to unmix
+vertices = np.array([
+    [0, 0],
+    [1, 0],
+    [0, 1],
+])
+new_points = np.array([
+    [0.2, 0.3],  # Inside of the simplex
+    [5.0, 5.0],       # Outside of the simplex
+])
+
+# Apply NFINDR
+nf = NFINDR().fit(vertices)
+
+# Transform with Barycentric (default)
+barycentric_concentrations = nf.transform(new_points)
+# # The total sum of contrations/coefficients is always 1. Howerver,
+# # The coefficients are not in the range [0,1], if a point is outside of the simplex
+# array([
+#     [ 0.5,  0.2,  0.3],   
+#     [-9. ,  5. ,  5. ]
+# ])
+
+
+# Transform with NNLS
+nnls_concentrations = nf.transform(new_points, method="nnls")
+# # Each coefficient is always non-negative. Howerver,
+# # it does not have to be less than 1. Also, the total sum
+# # is not always equal to 1.
+# array([
+#     [ 0.0,  0.2,  0.3],   
+#     [ 0.0,  5. ,  5. ]
+# ])
+```
+
+Currently, there is not clear way of dealing with out-of-simplex points.
+However one of workarounds can be application of NNLS and normalizing to row sums
+(see the example below). This approach allows to keep all concentrations in
+range [0, 1] with total sum of 1. However, one should always take into account
+that such transformation increases the error of restoring data and does not
+necesseray prepresent the true coefficients as barycentric coordinates.  
+
+```python
+nnls_concentrations = nf.transform(new_points, method="nnls")
+nnls_concentrations /= nnls_concentrations.sum(1).reshape(len(nnls_concentrations),-1)
+# # The values were normalized to have 1 a sto a total sum 
+# array([
+#     [ 0.0,  0.4,  0.6],   
+#     [ 0.0,  0.5,  0.5]
+# ])
 ```

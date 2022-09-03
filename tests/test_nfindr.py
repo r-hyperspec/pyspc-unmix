@@ -3,7 +3,7 @@ import random
 import numpy as np
 import pytest
 
-from pyspc_unmix.nfindr import _estimate_volume_change, nfindr, NFINDR
+from pyspc_unmix.nfindr import NFINDR, _estimate_volume_change, nfindr
 from pyspc_unmix.simplex import _inner_simplex_points, cart2bary, simplex_volume
 
 

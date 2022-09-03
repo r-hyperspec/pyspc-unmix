@@ -4,7 +4,9 @@ from warnings import warn
 import numpy as np
 from numpy.typing import ArrayLike
 from scipy.optimize import nnls
+from sklearn.base import BaseEstimator, TransformerMixin, _OneToOneFeatureMixin
 from sklearn.utils import check_random_state
+from sklearn.utils.validation import check_is_fitted
 
 from .simplex import _pad_ones, _simplex_E, cart2bary, simplex_volume
 
@@ -154,10 +156,6 @@ def nfindr(
         return indices_best, replacements
 
     return indices_best
-
-
-from sklearn.base import BaseEstimator, TransformerMixin, _OneToOneFeatureMixin
-from sklearn.utils.validation import check_is_fitted
 
 
 class NFINDR(_OneToOneFeatureMixin, TransformerMixin, BaseEstimator):

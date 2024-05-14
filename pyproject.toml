@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "pyspc-unmix"
-version = "0.1.0"
+version = "0.1.1"
 description = "Python package for unmixing hyperspectral data"
 authors = ["Rustam Giuliev <glvrst@gmail.com>"]
 license = "MIT"

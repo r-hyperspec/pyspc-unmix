@@ -3,8 +3,8 @@ from warnings import warn
 
 import numpy as np
 from numpy.typing import ArrayLike
-from scipy.optimize import nnls
-from sklearn.base import BaseEstimator, TransformerMixin, OneToOneFeatureMixin
+from scipy.optimize import lsq_linear, nnls
+from sklearn.base import BaseEstimator, OneToOneFeatureMixin, TransformerMixin
 from sklearn.utils import check_random_state
 from sklearn.utils.validation import check_is_fitted
 
@@ -293,6 +293,13 @@ class NFINDR(OneToOneFeatureMixin, TransformerMixin, BaseEstimator):
         X : array-like of shape (n_samples, n_features)
             New data, where `n_samples` is the number of samples
             and `n_features` is the number of features.
+        method: str, default="barycentric"
+            Method to use for unmixing. Can be either "barycentric", "nnls", or "lsq".
+            "barycentric" uses barycentric coordinates. Both "nnls" and "lsq" use
+            non-negative least squares (NNLS) for unmixing. The difference is that
+            "nnls" uses `scipy.optimize.nnls` and "lsq" uses `scipy.optimize.lsq_linear`.
+            NNLS is faster but less stable than LSQ. For more details see the related
+            issue: https://github.com/r-hyperspec/pyspc-unmix/issues/3
 
         Returns
         -------
@@ -308,6 +315,7 @@ class NFINDR(OneToOneFeatureMixin, TransformerMixin, BaseEstimator):
         check_is_fitted(self)
 
         X = self._validate_data(X, dtype=[np.float64, np.float32], reset=False)
+        A = self.endmembers_.T
 
         if method == "barycentric":
             X_transformed = cart2bary(
@@ -315,7 +323,13 @@ class NFINDR(OneToOneFeatureMixin, TransformerMixin, BaseEstimator):
             )
         elif method == "nnls":
             X_transformed = np.apply_along_axis(
-                lambda x: nnls(self.endmembers_.T, x)[0],
+                lambda x: nnls(A, x)[0],
+                axis=1,
+                arr=X[:, : (self.n_endmembers_ - 1)],
+            )
+        elif method == "lsq":
+            X_transformed = np.apply_along_axis(
+                lambda x: lsq_linear(A, x, bounds=(0, np.inf)).x,
                 axis=1,
                 arr=X[:, : (self.n_endmembers_ - 1)],
             )

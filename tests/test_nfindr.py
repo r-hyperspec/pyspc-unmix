@@ -184,3 +184,21 @@ def test_nfindr_class_transform_nnls():
     points = np.array([[2, 2], [3, 3]])
     coords = NFINDR().fit(vertices).transform(points, method="nnls")
     np.testing.assert_array_almost_equal(coords, [[0, 0.5, 0.5], [0, 0.75, 0.75]])
+    np.testing.assert_array_almost_equal(coords @ vertices, points)
+
+
+def test_nfindr_class_transform_lsq():
+    vertices = np.array([[0, 0], [1, 0], [0, 1]])
+    points = np.array([[0.5, 0.5], [0.1, 0.2], [0.7, 0.1], [1.0, 1.0]])
+    coords = NFINDR().fit(vertices).transform(points, method="lsq")
+    np.testing.assert_array_almost_equal(
+        coords, np.hstack((np.zeros((len(points), 1)), points))
+    )
+
+    vertices = np.array([[1, 1], [3, 1], [1, 3]])
+    points = np.array([[2, 2], [3, 3]])
+    coords = NFINDR().fit(vertices).transform(points, method="lsq")
+    np.testing.assert_array_almost_equal(
+        coords, [[2 / 9, 4 / 9, 4 / 9], [1 / 3, 2 / 3, 2 / 3]]
+    )
+    np.testing.assert_array_almost_equal(coords @ vertices, points)

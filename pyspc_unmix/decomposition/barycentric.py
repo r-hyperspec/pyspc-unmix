@@ -5,6 +5,12 @@ from ..simplex import cart2bary
 
 
 class Bary(Transformer):
+    """Barycentric transformation
+
+    Given a set of vertices, this transformer converts cartesian coordinates
+    to barycentric coordinates and vice versa.
+    """
+
     def __init__(self, A):
         self.A = A
 
@@ -16,6 +22,8 @@ class Bary(Transformer):
 
 
 class BaryDecomposition(LinearDecomposition):
+    """Barycentric decomposition"""
+
     def __init__(
         self,
         X: np.ndarray,

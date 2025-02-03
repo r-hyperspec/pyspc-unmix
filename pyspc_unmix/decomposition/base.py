@@ -7,6 +7,13 @@ import numpy as np
 
 
 class Transformer(ABC):
+    """Base class for data transformation.
+
+    This class is a base class for data transformations. The default
+    is that no fitting is required, and both `transform` and `inverse_transform`
+    methods must be provided.
+    """
+
     def fit(self, X: np.ndarray, y=None):
         warnings.warn("Fitting is ignored. No training is required.")
 
@@ -70,10 +77,12 @@ class LinearDecomposition:
 
     Parameters
     ----------
-    loadings: np.ndarray
+    loadings, S: np.ndarray
         Loadings matrix of shape (n_components, n_features)
-    scores: np.ndarray
+    scores, C: np.ndarray
         Scores matrix of shape (n_samples, n_components)
+    reconstructions, D: np.ndarray
+        Reconstructed data matrix of shape (n_samples, n_features)
     transformer : Transformer, optional
         Transformer to use for transformation. If None, an OLSTransformer is used.
     names : str or list of str, optional
@@ -178,9 +187,14 @@ class LinearDecomposition:
         return self._loadings
 
     @property
-    def D(self) -> np.ndarray:
+    def reconstructions(self) -> np.ndarray:
         """Reconstructed data (D)"""
         return self.transformer.inverse_transform(self._scores)
+
+    @property
+    def D(self) -> np.ndarray:
+        """Reconstructed data (D)"""
+        return self.reconstructions
 
     @property
     def nwl(self) -> int:

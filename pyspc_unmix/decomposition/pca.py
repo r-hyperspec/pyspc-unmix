@@ -8,6 +8,8 @@ from .base import LinearDecomposition
 
 
 class PCADecomposition(LinearDecomposition):
+    """PCA decomposition"""
+
     def __init__(self, X: np.ndarray, **kwargs):
         pca = PCA(**kwargs)
         scores = pca.fit_transform(X)

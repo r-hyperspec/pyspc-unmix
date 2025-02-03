@@ -1,9 +1,9 @@
 import warnings
 from abc import ABC, abstractmethod
+from copy import copy, deepcopy
 from typing import List, Optional, Tuple, Union
 
 import numpy as np
-from numpy.typing import ArrayLike
 
 
 class Transformer(ABC):
@@ -27,21 +27,15 @@ class OLSTransformer(Transformer):
     """Ordinary Least Squares (OLS) Transformer.
 
     Transforms data using ordinary least squares regression against a fixed transformation matrix A.
-    Optionally applies centering and scaling before transformation.
 
     Parameters
     ----------
     A : np.ndarray
         Fixed transformation matrix of shape (n_features, n_components)
-    center : Optional[ArrayLike], default=None
-        Optional centering vector to subtract from input data
-    scale : Optional[ArrayLike], default=None
-        Optional scaling vector to divide input data by
 
     Notes
     -----
     The transformation is performed by solving the equation X = SA
-    (or `(X - center) / scale = SA` if `center` and `scale` are provided)
     where:
     - X is the input data matrix of shape (n_samples, n_features)
     - S is the transformed data matrix of shape (n_samples, n_components)
@@ -51,43 +45,14 @@ class OLSTransformer(Transformer):
     which uses the SVD-based algorithm to find the solution that minimizes ||X - SA||_2.
     """
 
-    def __init__(
-        self,
-        A: np.ndarray,
-        center: Optional[ArrayLike] = None,
-        scale: Optional[ArrayLike] = None,
-    ):
+    def __init__(self, A: np.ndarray):
         self.A = A
-        if center is not None:
-            # Ensure center is a 1D array that will broadcast correctly
-            self.center = np.array(center).reshape(1, -1)
-        else:
-            self.center = None
-
-        if scale is not None:
-            # Ensure scale is a 1D array that will broadcast correctly
-            self.scale = np.array(scale).reshape(1, -1)
-            # Prevent division by zero
-            if np.any(self.scale == 0):
-                raise ValueError("Scale cannot contain zero values")
-        else:
-            self.scale = None
 
     def transform(self, X: np.ndarray) -> np.ndarray:
-        X_transformed = X.copy()
-        if self.center is not None:
-            X_transformed -= self.center
-        if self.scale is not None:
-            X_transformed = X_transformed / self.scale
-        return np.linalg.lstsq(self.A.T, X_transformed.T, rcond=None)[0].T
+        return np.linalg.lstsq(self.A.T, X.T, rcond=None)[0].T
 
     def inverse_transform(self, X: np.ndarray) -> np.ndarray:
-        result = X @ self.A
-        if self.scale is not None:
-            result = result * self.scale
-        if self.center is not None:
-            result = result + self.center
-        return result
+        return X @ self.A
 
 
 class LinearDecomposition:
@@ -95,9 +60,8 @@ class LinearDecomposition:
 
     This class is a base class for storing lenear decompositoins,
     i.e. $D = SC$ if using MCR-ALS notation
-    (D = original spectral data, S = spectra (loadings in PCA), C = concentrations (scores in PCA)),
-    original spectral data $D$ can be linearly preprocessed (i.e. centered and scaled)
-    using a transformer.
+    (D = original spectral data, S = spectra (loadings in PCA), C = concentrations (scores in PCA))
+     using a transformer.
     This is a useful class for storing results of common linear decomposition methods,
     such as OLS, PCA, NNLS, EMSC, etc.
     The default implementation uses OLS transformer.
@@ -125,17 +89,19 @@ class LinearDecomposition:
     ):
         # Get the transformer
         if transformer is None:
-            self._transformer = OLSTransformer(loadings)
+            self.transformer = OLSTransformer(loadings)
         else:
-            self._transformer = transformer
+            self.transformer = transformer
 
         # Get names
         if isinstance(names, str):
-            names = [f"{names}{i+1}" for i in range(loadings.shape[0])]
+            n_comp = loadings.shape[0]
+            n_digits = len(str(n_comp))
+            names = [f"{names}{str(i+1).zfill(n_digits)}" for i in range(n_comp)]
 
         self._loadings = loadings
         self._scores = scores
-        self._names = np.array(names).reshape((-1,))
+        self._names = np.array(names).flatten()
 
     @classmethod
     def from_transformer(
@@ -148,6 +114,24 @@ class LinearDecomposition:
             scores=scores,
             transformer=transformer,
             names=names,
+        )
+
+    def __copy__(self):
+        """Create a shallow copy of the LinearDecomposition instance."""
+        return LinearDecomposition(
+            loadings=self._loadings.copy(),
+            scores=self._scores.copy(),
+            transformer=copy(self.transformer),
+            names=self._names.copy(),
+        )
+
+    def __deepcopy__(self, memo):
+        """Create a deep copy of the LinearDecomposition instance."""
+        return LinearDecomposition(
+            loadings=deepcopy(self._loadings, memo),
+            scores=deepcopy(self._scores, memo),
+            transformer=deepcopy(self.transformer, memo),
+            names=deepcopy(self._names, memo),
         )
 
     # ----------------------------------------------------------------------
@@ -193,7 +177,7 @@ class LinearDecomposition:
     @property
     def D(self) -> np.ndarray:
         """Reconstructed data (D)"""
-        return self._transformer.inverse_transform(self._scores)
+        return self.transformer.inverse_transform(self._scores)
 
     @property
     def nwl(self) -> int:
@@ -260,10 +244,10 @@ class LinearDecomposition:
     # ----------------------------------------------------------------------
     # spc2scores and scores2spc
     def transform(self, X: np.ndarray) -> np.ndarray:
-        return self._transformer.transform(X)
+        return self.transformer.transform(X)
 
     def inverse_transform(self, scores: np.ndarray) -> np.ndarray:
-        return self._transformer.inverse_transform(scores)
+        return self.transformer.inverse_transform(scores)
 
     # ----------------------------------------------------------------------
     # Plotting

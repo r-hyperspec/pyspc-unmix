@@ -26,7 +26,8 @@ class Transformer(ABC):
 class OLSTransformer(Transformer):
     """Ordinary Least Squares (OLS) Transformer.
 
-    Transforms data using ordinary least squares regression against a fixed transformation matrix A.
+    Transforms data using ordinary least squares regression against
+    a fixed transformation matrix A.
 
     Parameters
     ----------
@@ -58,10 +59,11 @@ class OLSTransformer(Transformer):
 class LinearDecomposition:
     """Base class for linear decomposition
 
-    This class is a base class for storing lenear decompositoins,
-    i.e. $D = SC$ if using MCR-ALS notation
-    (D = original spectral data, S = spectra (loadings in PCA), C = concentrations (scores in PCA))
-     using a transformer.
+    This class is a base class for storing lenear decompositoins using a transformer,
+    i.e. $D = SC$, using MCR-ALS notation where
+    * D = original spectral data,
+    * S = spectra (loadings in PCA),
+    * C = concentrations (scores in PCA).
     This is a useful class for storing results of common linear decomposition methods,
     such as OLS, PCA, NNLS, EMSC, etc.
     The default implementation uses OLS transformer.
@@ -145,7 +147,8 @@ class LinearDecomposition:
         new_names = np.array(new_names).reshape((-1,))
         if len(new_names) != self.ncomp:
             raise ValueError(
-                f"Number of new names ({len(new_names)}) should be equal to the number of components ({self.ncomp})"
+                f"Number of new names ({len(new_names)}) should be equal "
+                f"to the number of components ({self.ncomp})"
             )
 
         self._names = new_names

@@ -1,22 +1,6 @@
 repos:
 - repo: local
   hooks:
-  - id: autoflake
-    name: autoflake
-    entry: poetry run autoflake --remove-all-unused-imports --ignore-init-module-imports -ir .
-    language: system
-    pass_filenames: false
-
-- repo: local
-  hooks:
-  - id: isort
-    name: isort
-    entry: poetry run isort --profile black . 
-    language: system
-    pass_filenames: false
-
-- repo: local
-  hooks:
   - id: black
     name: black
     entry: poetry run black .
@@ -25,8 +9,8 @@ repos:
 
 - repo: local
   hooks:
-  - id: flake8
-    name: flake8
-    entry: poetry run flake8 .     
+  - id: ruff
+    name: ruff
+    entry: poetry run ruff --fix --exit-non-zero-on-fix .
     language: system
     pass_filenames: false

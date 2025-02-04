@@ -10,6 +10,8 @@ from sklearn.utils.validation import check_is_fitted
 
 from .simplex import _pad_ones, _simplex_E, cart2bary, simplex_volume
 
+__all__ = ["nfindr", "NFINDR"]
+
 
 def _estimate_volume_change(
     x: ArrayLike,
@@ -297,7 +299,8 @@ class NFINDR(OneToOneFeatureMixin, TransformerMixin, BaseEstimator):
             Method to use for unmixing. Can be either "barycentric", "nnls", or "lsq".
             "barycentric" uses barycentric coordinates. Both "nnls" and "lsq" use
             non-negative least squares (NNLS) for unmixing. The difference is that
-            "nnls" uses `scipy.optimize.nnls` and "lsq" uses `scipy.optimize.lsq_linear`.
+            "nnls" uses `scipy.optimize.nnls` and
+            "lsq" uses `scipy.optimize.lsq_linear`.
             NNLS is faster but less stable than LSQ. For more details see the related
             issue: https://github.com/r-hyperspec/pyspc-unmix/issues/3
 

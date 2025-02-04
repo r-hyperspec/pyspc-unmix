@@ -4,6 +4,11 @@ from typing import List, Optional, Union
 import numpy as np
 from numpy.typing import ArrayLike
 
+__all__ = [
+    "simplex_volume",
+    "cart2bary",
+]
+
 
 def _inner_simplex_points(
     vertices: ArrayLike, high: Union[float, List[float]] = 1.0, n=100
@@ -77,7 +82,8 @@ def _simplex_E(x: ArrayLike, indices: Optional[List[int]] = None) -> ArrayLike:
         matrix should be reduced using using PCA or some other process
         so that it has p-1 columns before calling this function.
     indices : Optional[List[int]], optional
-        Locations of the rows in the dataset to use as simplex vertecies, by default None
+        Locations of the rows in the dataset to use as simplex vertecies,
+        by default None
 
     Returns
     -------
@@ -142,9 +148,11 @@ def cart2bary(x: ArrayLike, vertices: ArrayLike) -> np.ndarray:
     Parameters
     ----------
     x : ArrayLike of shape (M, N)
-        2d matrix of Cartesian coordinates to be converted to barycentric. One row corresponds to one line.
+        2d matrix of Cartesian coordinates to be converted to barycentric.
+        One row corresponds to one line.
     vertices : ArrayLike of shape (N+1, N)
-        Vertex points of the simples with respect to which barycentric coordinates should be computed
+        Vertex points of the simples with respect to which
+        barycentric coordinates should be computed
 
     Returns
     -------

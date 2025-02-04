@@ -1,3 +1,5 @@
-__version__ = "0.1.0"
+# ruff: noqa: F403
+__version__ = "0.3.0"
 
-from .nfindr import NFINDR, nfindr
+from .nfindr import *
+from .simplex import *

@@ -1,3 +1,5 @@
+from typing import Optional
+
 import numpy as np
 from sklearn.preprocessing import minmax_scale
 
@@ -23,13 +25,13 @@ def vandermonde(x: np.ndarray, p=3) -> np.ndarray:
         Vandermonde matrix of polynomial order `p`.
     """
     x = minmax_scale(x, feature_range=(-1, 1))
-    return np.vander(x, p + 1).T
+    return np.vander(x, p + 1)[:, ::-1].T
 
 
 class EMSC(OLSTransformer):
     """EMSC transformer"""
 
-    def __init__(self, refs: np.ndarray, p: int = 3):
+    def __init__(self, refs: np.ndarray, wl: Optional[np.ndarray] = None, p: int = 3):
         """EMSC transformer
 
         Parameters
@@ -39,9 +41,15 @@ class EMSC(OLSTransformer):
             EMSC fitting.
         p : int, optional
             Polynomial order to be used for background estimation, by default 3
+        wl : np.ndarray, optional
+            Wavelengths corresponding to the reference spectra, by default
+            indices are used (0, 1, 2, ...). If provided, the polynomial will
+            be evaluated in the given range.
         """
+        if wl is None:
+            wl = np.arange(refs.shape[1])
         self.refs = refs
-        self.polys = vandermonde(refs.wl, p=p)
+        self.polys = vandermonde(wl, p=p)
         self.p = p
 
     @property
@@ -64,8 +72,9 @@ class EMSCDecomposition(LinearDecomposition):
         scores = transformer.transform(X)
 
         super().__init__(
-            loadings=ems,
+            loadings=transformer.A,
             scores=scores,
             names=names,
             transformer=transformer,
         )
+        self._names[len(ems) :] = [f"Poly{i}" for i in range(p + 1)]

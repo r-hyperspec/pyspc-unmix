@@ -199,7 +199,7 @@ class LinearDecomposition:
     @property
     def nwl(self) -> int:
         """Number of wavelength points"""
-        return len(self._loadings.shape[1])
+        return self._loadings.shape[1]
 
     @property
     def nspc(self) -> int:

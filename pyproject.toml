@@ -10,13 +10,16 @@ python = "^3.9"
 numpy = "^1.23.2"
 scikit-learn = "^1.2.0"
 
-[tool.poetry.dev-dependencies]
+[tool.poetry.group.dev.dependencies]
 pytest = "^7.4.2"
 black = "^23.9.1"
 ruff = "^0.0.291"
 pre-commit = "^3.4.0"
 ipython = "^8.4.0"
 matplotlib = "^3.5.3"
+pandas = "^2.2.3"
+nbconvert = "^7.16.6"
+ipykernel = "^6.29.5"
 
 [tool.ruff]
 # Enable the pycodestyle (`E`) and Pyflakes (`F`) rules by default.

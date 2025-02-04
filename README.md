@@ -73,7 +73,7 @@ axs[1].set_title("Pure components / Endmembers")
 axs[1].legend()
 ```
 
-![png](README_files/README_9_1.png){ height=300px }
+![png](README_files/README_9_1.png)
     
 ## Decompositions
 
@@ -88,8 +88,8 @@ Decomposition classes are a convenient way to represent data as a linear decompo
 * $X \in \mathbb{R}^{n\_samples \times n\_features}$ - original data matrix, where rows are samples and columns are features (wavelengths).
 * $S \in \mathbb{R}^{n\_components \times n\_features}$ - loadings matrix, where rows are components (endmembers) and columns are features (wavelengths).
 * $C \in \mathbb{R}^{n\_samples \times n\_components}$ - scores matrix, where rows are samples and columns are components (endmembers).
-* $D \in \mathbb{R}^{n\_samples \times n\_features}$ - recunstructions matrix (i.e. $ D = C \times S$), where rows are samples and columns are features (wavelengths).
-* $E \in \mathbb{R}^{n\_samples \times n\_features}$ - residuals matrix (i.e. $ E = X - D$), where rows are samples and columns are features (wavelengths).
+* $D \in \mathbb{R}^{n\_samples \times n\_features}$ - recunstructions matrix (i.e. $D = C \times S$), where rows are samples and columns are features (wavelengths).
+* $E \in \mathbb{R}^{n\_samples \times n\_features}$ - residuals matrix (i.e. $E = X - D$), where rows are samples and columns are features (wavelengths).
 * Therefore, the decomposition can be represented as $X = C \times S + E$.
 * Notation $D = C \times S$ is adopted from MCR-ALS literature, it can be cosidered as D - data, C - components/coefficients, S - spectra.
 * Terminology might be mixed in some places:
@@ -166,7 +166,7 @@ ax.plot(x, pca.loadings[:3,:].T, label=pca.names[:3])
 _ = ax.legend()
 ```
    
-![png](README_files/README_22_0.png){ height=300px }
+![png](README_files/README_22_0.png)
     
 
 ```python
@@ -179,7 +179,7 @@ ax.set_xlabel(pca.names[0])
 ax.set_ylabel(pca.names[1])
 ```
 
-![png](README_files/README_23_1.png){ height=300px }
+![png](README_files/README_23_1.png)
 
 ```python
 # Access the transformer object
@@ -209,7 +209,7 @@ for ax in axs:
     ax.legend()
 ```
    
-![png](README_files/README_27_0.png){ height=300px }
+![png](README_files/README_27_0.png)
 
 ### Decomposition: NNLS
 
@@ -229,7 +229,7 @@ ax.set_xlabel(nnls.names[0])
 ax.set_ylabel(nnls.names[1])
 ```
    
-![png](README_files/README_30_1.png){ height=300px }
+![png](README_files/README_30_1.png)
 
 ```python
 # Similarly, reconstruction and slicing can be done
@@ -272,7 +272,7 @@ fig, ax = plt.subplots(figsize=(6, 4))
 _ = ax.plot(x, poly_mixtures.T)
 ```
 
-![png](README_files/README_34_0.png){ height=300px }
+![png](README_files/README_34_0.png)
     
 ```python
 emsc = EMSCDecomposition(poly_mixtures, ems=true_ems, p=degree, wl=x, names="EMSC")
@@ -328,7 +328,7 @@ axs[1].plot(x, corr_mixtures_norm.T)
 axs[1].set_title("Corrected and normalized spectra")
 ```
     
-![png](README_files/README_40_1.png){ height=300px }
+![png](README_files/README_40_1.png)
   
 ### Decomposition: Barycentric coordinates
 
@@ -358,7 +358,7 @@ for j in range(axs.shape[1]):
 
 ```
    
-![png](README_files/README_44_0.png){ height=300px }
+![png](README_files/README_44_0.png)
     
 
 > [!NOTE]
@@ -445,8 +445,6 @@ However, in this case, only the indices of the "pure pixels" (endmembers) are re
 
 > [!NOTE]
 > If future, it is planned to switch to the function interface for all endmember extraction algorithms. This is to avoid a general misconception that abundances/coefficitents are output of the algorithm. Also, to be explicit about the abunances calculation. So, the future workflow will be 1) extract endmembers or their indices using a function; 2) use `BaryDecomposition` or `NNLSDecomposition` to calculate abundances.
-
-:::
 
 
 

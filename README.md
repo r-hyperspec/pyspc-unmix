@@ -1,3 +1,8 @@
+<!-- badges: start -->
+[![Project Status: WIP – Initial development is in progress, but there has not yet been a stable, usable release suitable for the public.](https://www.repostatus.org/badges/latest/wip.svg)](https://www.repostatus.org/#wip)
+![Supports Python 3.9 and higher](https://img.shields.io/badge/Python-3.9%2B-brightgreen?style=flat&logo=python)
+<!-- badges: end -->
+
 `pyspc-unmix`: Python package for unmixing hyperspectral data
 ==============
 
@@ -18,11 +23,6 @@
     - [N-FINDR: Function interface](#n-findr-function-interface)
     - [N-FINDR: Pipline interface](#n-findr-pipline-interface)
     - [NFINDR: Out-of-simplex points and Barycentric vs. NNLS](#nfindr-out-of-simplex-points-and-barycentric-vs-nnls)
-
-
-<!-- badges: start -->
-[![Project Status: WIP – Initial development is in progress, but there has not yet been a stable, usable release suitable for the public.](https://www.repostatus.org/badges/latest/wip.svg)](https://www.repostatus.org/#wip)
-<!-- badges: end -->
 
 # Installation
 

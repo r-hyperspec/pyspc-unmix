@@ -1,6 +1,25 @@
 `pyspc-unmix`: Python package for unmixing hyperspectral data
 ==============
 
+- [`pyspc-unmix`: Python package for unmixing hyperspectral data](#pyspc-unmix-python-package-for-unmixing-hyperspectral-data)
+- [Installation](#installation)
+- [Available tools and alogrithms](#available-tools-and-alogrithms)
+- [Examples](#examples)
+  - [Prepare pure-mixture dataset](#prepare-pure-mixture-dataset)
+  - [Decompositions](#decompositions)
+    - [Notations](#notations)
+    - [Decomposition: OLS and Basics](#decomposition-ols-and-basics)
+    - [Decompostion: PCA](#decompostion-pca)
+    - [Decomposition: NNLS](#decomposition-nnls)
+    - [Decomposition: EMSC](#decomposition-emsc)
+    - [Decomposition: Barycentric coordinates](#decomposition-barycentric-coordinates)
+  - [N-FINDR](#n-findr)
+    - [N-FINDR: Basic example](#n-findr-basic-example)
+    - [N-FINDR: Function interface](#n-findr-function-interface)
+    - [N-FINDR: Pipline interface](#n-findr-pipline-interface)
+    - [NFINDR: Out-of-simplex points and Barycentric vs. NNLS](#nfindr-out-of-simplex-points-and-barycentric-vs-nnls)
+
+
 <!-- badges: start -->
 [![Project Status: WIP – Initial development is in progress, but there has not yet been a stable, usable release suitable for the public.](https://www.repostatus.org/badges/latest/wip.svg)](https://www.repostatus.org/#wip)
 <!-- badges: end -->
@@ -47,19 +66,19 @@ mixtures, true_coefs, true_ems, x = generate_demo_mixture()
 pd.DataFrame(true_coefs, columns=["EM1", "EM2", "EM3"])
 ```
 
-|   | EM1     | EM2     | EM3     |
-|---|---------|---------|---------|
-| 0 | 0.182059| 0.462129| 0.355812|
-| 1 | 0.657381| 0.171323| 0.171296|
-| 2 | 0.038078| 0.567845| 0.394077|
-| 3 | 0.416865| 0.012119| 0.571017|
-| 4 | 0.678655| 0.173111| 0.148234|
-|...| ...     | ...     | ...     |
-|95 | 0.025000| 0.025000| 0.950000|
-|96 | 0.315618| 0.650787| 0.033595|
-|97 | 0.030610| 0.674186| 0.295205|
-|98 | 0.089524| 0.367959| 0.542517|
-|99 | 0.233558| 0.674081| 0.092361|
+|     | EM1      | EM2      | EM3      |
+| --- | -------- | -------- | -------- |
+| 0   | 0.182059 | 0.462129 | 0.355812 |
+| 1   | 0.657381 | 0.171323 | 0.171296 |
+| 2   | 0.038078 | 0.567845 | 0.394077 |
+| 3   | 0.416865 | 0.012119 | 0.571017 |
+| 4   | 0.678655 | 0.173111 | 0.148234 |
+| ... | ...      | ...      | ...      |
+| 95  | 0.025000 | 0.025000 | 0.950000 |
+| 96  | 0.315618 | 0.650787 | 0.033595 |
+| 97  | 0.030610 | 0.674186 | 0.295205 |
+| 98  | 0.089524 | 0.367959 | 0.542517 |
+| 99  | 0.233558 | 0.674081 | 0.092361 |
 
 
 
@@ -388,22 +407,22 @@ nf.fit(pca_scores)
 pd.DataFrame(true_coefs[nf.endmember_indices_, :], columns=["EM1", "EM2", "EM3"])
 ```
 
-|   | EM1   | EM2   | EM3   |
-|---|-------|-------|-------|
-| 0 | 0.950 | 0.025 | 0.025 |
-| 1 | 0.025 | 0.950 | 0.025 |
-| 2 | 0.025 | 0.025 | 0.950 |
+|     | EM1   | EM2   | EM3   |
+| --- | ----- | ----- | ----- |
+| 0   | 0.950 | 0.025 | 0.025 |
+| 1   | 0.025 | 0.950 | 0.025 |
+| 2   | 0.025 | 0.025 | 0.950 |
 
 ```python
 # Endmember coordinates in the reduced PCA space
 pd.DataFrame(nf.endmembers_, columns=["PC1", "PC2"])
 ```
 
-|   | PC1      | PC2      |
-|---|----------|----------|
-| 0 | 7.213701 | 0.845328 |
-| 1 | -4.371155| 3.944780 |
-| 2 | -2.583558| -4.753258|
+|     | PC1       | PC2       |
+| --- | --------- | --------- |
+| 0   | 7.213701  | 0.845328  |
+| 1   | -4.371155 | 3.944780  |
+| 2   | -2.583558 | -4.753258 |
 
 
 ```python
@@ -421,19 +440,19 @@ nfindr_coefs = nf.transform(pca_scores)
 pd.DataFrame(nfindr_coefs, columns=["EM1", "EM2", "EM3"])
 ```
 
-|   | EM1      | EM2      | EM3      |
-|---|----------|----------|----------|
-| 0 | 0.169017 | 0.471370 | 0.359613 |
-| 1 | 0.687749 | 0.159079 | 0.153172 |
-| 2 | 0.012803 | 0.581617 | 0.405579 |
-| 3 | 0.425307 | -0.015681| 0.590373 |
-| 4 | 0.707065 | 0.158262 | 0.134673 |
-|...| ...      | ...      | ...      |
-|95 | 0.000000 | 0.000000 | 1.000000 |
-|96 | 0.313005 | 0.672871 | 0.014124 |
-|97 | 0.003540 | 0.699878 | 0.296582 |
-|98 | 0.068655 | 0.368628 | 0.562718 |
-|99 | 0.223641 | 0.696056 | 0.080303 |
+|     | EM1      | EM2       | EM3      |
+| --- | -------- | --------- | -------- |
+| 0   | 0.169017 | 0.471370  | 0.359613 |
+| 1   | 0.687749 | 0.159079  | 0.153172 |
+| 2   | 0.012803 | 0.581617  | 0.405579 |
+| 3   | 0.425307 | -0.015681 | 0.590373 |
+| 4   | 0.707065 | 0.158262  | 0.134673 |
+| ... | ...      | ...       | ...      |
+| 95  | 0.000000 | 0.000000  | 1.000000 |
+| 96  | 0.313005 | 0.672871  | 0.014124 |
+| 97  | 0.003540 | 0.699878  | 0.296582 |
+| 98  | 0.068655 | 0.368628  | 0.562718 |
+| 99  | 0.223641 | 0.696056  | 0.080303 |
 <p>100 rows × 3 columns</p>
 
 
@@ -482,19 +501,19 @@ nfindr_pip_coefs = pca_nfindr_pipe.fit_transform(mixtures)
 pd.DataFrame(nfindr_pip_coefs, columns=["EM1", "EM2", "EM3"])
 ```
 
-|   | EM1      | EM2      | EM3      |
-|---|----------|----------|----------|
-| 0 | 0.169017 | 0.471370 | 0.359613 |
-| 1 | 0.687749 | 0.159079 | 0.153172 |
-| 2 | 0.012803 | 0.581617 | 0.405579 |
-| 3 | 0.425307 | -0.015681| 0.590373 |
-| 4 | 0.707065 | 0.158262 | 0.134673 |
-|...| ...      | ...      | ...      |
-|95 | 0.000000 | 0.000000 | 1.000000 |
-|96 | 0.313005 | 0.672871 | 0.014124 |
-|97 | 0.003540 | 0.699878 | 0.296582 |
-|98 | 0.068655 | 0.368628 | 0.562718 |
-|99 | 0.223641 | 0.696056 | 0.080303 |
+|     | EM1      | EM2       | EM3      |
+| --- | -------- | --------- | -------- |
+| 0   | 0.169017 | 0.471370  | 0.359613 |
+| 1   | 0.687749 | 0.159079  | 0.153172 |
+| 2   | 0.012803 | 0.581617  | 0.405579 |
+| 3   | 0.425307 | -0.015681 | 0.590373 |
+| 4   | 0.707065 | 0.158262  | 0.134673 |
+| ... | ...      | ...       | ...      |
+| 95  | 0.000000 | 0.000000  | 1.000000 |
+| 96  | 0.313005 | 0.672871  | 0.014124 |
+| 97  | 0.003540 | 0.699878  | 0.296582 |
+| 98  | 0.068655 | 0.368628  | 0.562718 |
+| 99  | 0.223641 | 0.696056  | 0.080303 |
 <p>100 rows × 3 columns</p>
 
 

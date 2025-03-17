@@ -6,7 +6,7 @@ from numpy.typing import ArrayLike
 from scipy.optimize import lsq_linear, nnls
 from sklearn.base import BaseEstimator, OneToOneFeatureMixin, TransformerMixin
 from sklearn.utils import check_random_state
-from sklearn.utils.validation import check_is_fitted
+from sklearn.utils.validation import check_is_fitted, validate_data
 
 from .simplex import _pad_ones, _simplex_E, cart2bary, simplex_volume
 
@@ -65,63 +65,44 @@ def _estimate_volume_change(
     return np.abs(ratios)
 
 
-def nfindr(
-    x: ArrayLike,
-    indices: Optional[List[int]] = None,
-    iter_max: int = 10,
-    keep_replacements: bool = False,
-) -> Union[List[int], Tuple[List[int], List[List[int]]]]:
-    """Run N-FIND algorithm
-
-    The implementation correspoinds to iter="points", estimator="Cramer"
-    from the `unmixR` R package.
-
-    Parameters
-    ----------
-    x : ArrayLike
-        N-dimensional data matrix
-    indices : Optional[List[int]], optional
-        List of the initial points indices, by default generated randomly
-    iter_max : int, optional
-        Maximum number of outer loops, by default 10
-    keep_replacements : bool, optional
-        Return list of replacements as well as the list of the best indices,
-        by default False
-
-    Returns
-    -------
-    endmember_indices: List[int]
-        List of indices giving the largest volume, i.e. the found endmember points.
-        The list is sorted so the output would be more stable.
-    replacements: List[List[int]], if `keep_replacements` is True
-        List of sets of candidate points that were iterated over. I.e. the first
-        row/element is the list of initial points, the last is the list of the final
-        points giving the largest volume.
-    """
-
-    # Prepare data matrix
-    x = np.array(x)
+def _init_random(x: np.ndarray, random_state=None) -> List[int]:
+    """Initialize NFINDR with random points"""
     m = x.shape[0]
     n = x.shape[1]
-
-    # # Validate number of components
-    # if not (isinstance(p, int) and (p > 2)):
-    #     raise ValueError(
-    #         f"Invalid number of endmembers for search. "
-    #         "Please provide an integer number greater than 2."
-    #     )
-
-    # if n != p - 1:
-    #     raise ValueError(
-    #         "Mismatching number of endmembers and data dimension. "
-    #         "The data dimension (number of columns) must be equal to p-1."
-    #     )
     p = n + 1
+    random_state: np.random.RandomState = check_random_state(random_state)
+    return random_state.choice(m, p, replace=False)
 
-    # Get initial indices
-    if indices is None:
-        indices = np.random.choice(range(m), p, replace=False)
 
+def _init_projections(x: np.ndarray, random_state=None) -> List[int]:
+    """Initialize NFINDR with projections of data onto random vectors"""
+    n = x.shape[1]
+    p = n + 1
+    random_state: np.random.RandomState = check_random_state(random_state)
+
+    indices = set()
+    while len(indices) < p:
+        w = random_state.normal(scale=1, size=n)
+        projections = np.dot(x, w)
+        indices = indices.union(
+            [
+                np.argmax(projections),
+                np.argmin(projections),
+            ]
+        )
+
+    return list(indices)[:p]
+
+
+def _single_nfindr_run(
+    x: np.array,
+    indices: List[int],
+    iter_max: int = 10,
+    keep_replacements: bool = False,
+    tol: float = 1e-8,
+) -> Tuple[List[int], List[List[int]]]:
+    """Run a single NFINDR iteration"""
+    p = x.shape[1] + 1
     n_iters = 0
     is_replacement = True
     indices_best = list(indices).copy()
@@ -134,7 +115,7 @@ def nfindr(
             estimates = _estimate_volume_change(
                 x, indices_best, endmembers=j, Einv=Einv
             )
-            if any(estimates > (1 + 1.5e-8)):
+            if any(estimates > (1 + tol)):
                 # Update current simplex vertices
                 i, _ = np.unravel_index(np.nanargmax(estimates), estimates.shape)
                 indices_best[j] = i
@@ -157,7 +138,136 @@ def nfindr(
     if keep_replacements:
         return indices_best, replacements
 
-    return indices_best
+    return indices_best, None
+
+
+def nfindr(
+    x: ArrayLike,
+    init: Union[str, List[int]] = "projections",
+    iter: str = "points",
+    estimator: str = "Cramer",
+    iter_max: int = 10,
+    n_init: int = 1,
+    keep_replacements: bool = False,
+    tol: float = 1e-8,
+    random_state=None,
+) -> Union[List[int], Tuple[List[int], List[float], List[List[int]]]]:
+    """Run N-FIND algorithm
+
+    The implementation correspoinds to iter="points", estimator="Cramer"
+    from the `unmixR` R package. The data is expected to be already
+    reduced to the dimension of p-1 (where p is number of endmembers).
+
+    Parameters
+    ----------
+    x : ArrayLike
+        (n, p-1)-dimensional data matrix to unmix
+    init : Union[str, List[int]], optional
+        Initialization strategy, by default projections. If None, random initialization
+        is used. Possible values are:
+        - "random" - random initialization
+        - "projections" -  selecting two extreme points of the projections of the data
+        onto random vectors.
+        - list (or an array-like) of p integers - manually selected
+        initial points, can be output of another endmember extraction method, e.g. VCA
+    iter : str, optional
+        The iteration strategy, by default "points". Other options are not supported.
+    estimator : str, optional
+        Volume change estimator, by default "Cramer". Other options are not supported.
+    iter_max : int, optional
+        Maximum number of outer loops, by default 10
+    n_init : int, optional
+        Number of initializations to try. The final result will be the best output of
+        all initializations. Ignored if specific initial endmember indices provided.
+        For backward compatibility, by default 1.
+    keep_replacements : bool, optional
+        Return list of replacements as well as the list of the best indices,
+        by default False. Mainly for debugging purposes.
+    tol : float, optional
+        Tolerance for the volume change, by default 1e-8. If the relative volume change
+        is smaller than this value, the replacement is not made.
+    random_state : int, RandomState instance or None, optional
+        Pass an int for reproducible results across multiple function calls.
+        Works the same as `random_state` in `sklearn`
+
+    Returns
+    -------
+    endmember_indices: List[int]
+        List of indices giving the largest volume, i.e. the found endmember points.
+        The list is sorted so the output remains stable.
+    volumes: List[float], if `keep_replacements` is True
+        List of `n_init` simplex volumes for each initialization. The largest volume
+        corresponds to the endmembers in `endmember_indices`.
+    replacements: List[List[int]], if `keep_replacements` is True
+        For each `n_init` initialization, the list of replacements that were made,
+        i.e. the first row/element corresponds to the initialized enemembers,
+        and the last is the list of the final endmembers giving the largest volume.
+    """
+
+    if iter != "points" or estimator != "Cramer":
+        raise NotImplementedError(
+            "The only supported combination of `iter` and `estimator` is "
+            "'points' and 'Cramer'"
+        )
+
+    # Prepare data matrix
+    x = np.array(x)
+    n = x.shape[1]
+
+    # # Validate number of components
+    # if not (isinstance(p, int) and (p > 2)):
+    #     raise ValueError(
+    #         f"Invalid number of endmembers for search. "
+    #         "Please provide an integer number greater than 2."
+    #     )
+
+    # if n != p - 1:
+    #     raise ValueError(
+    #         "Mismatching number of endmembers and data dimension. "
+    #         "The data dimension (number of columns) must be equal to p-1."
+    #     )
+    p = n + 1
+
+    # Get initial indices
+    if isinstance(init, str) and (init == "random"):
+        # Random initialization
+        init_indices_list = [
+            _init_random(x, random_state=random_state) for _ in range(n_init)
+        ]
+    elif isinstance(init, str) and (init == "projections"):
+        # Extremes of random projections
+        init_indices_list = [
+            _init_projections(x, random_state=random_state) for _ in range(n_init)
+        ]
+    else:
+        # Manually provided initial points
+        init = np.array(init)
+        if len(init) != p:
+            raise ValueError(
+                f"Invalid number of initial points. Expected list of {p} "
+                f"integer indices, but got {init}."
+            )
+        init = init.astype(int)
+        init_indices_list = [init]
+
+    # Run the algorithm n_init times
+    nf_results = [
+        _single_nfindr_run(
+            x, indices, iter_max=iter_max, keep_replacements=keep_replacements, tol=tol
+        )
+        for indices in init_indices_list
+    ]
+
+    # Find the best result
+    volumes = [simplex_volume(x[i, :], factorial=False) for i, _ in nf_results]
+    best_idx = np.argmax(volumes)
+
+    # Return the best result
+    if keep_replacements:
+        replacements = [r for _, r in nf_results]
+        return nf_results[best_idx][0], volumes, replacements
+
+    return nf_results[best_idx][0]
 
 
 class NFINDR(OneToOneFeatureMixin, TransformerMixin, BaseEstimator):
@@ -172,8 +282,25 @@ class NFINDR(OneToOneFeatureMixin, TransformerMixin, BaseEstimator):
     n_endmembers : int, default=None
         Number of endmembers to find.
 
-    initial_indices : List[int], default=None
-        List of row indices to be used as initial points for NFINDR
+    init : Union[str, List[int]], default="projections"
+        Initialization strategy. If None, random initialization is used. Possible values
+        are:
+        - "random" - random initialization
+        - "projections" -  selecting two extreme points of the projections of the data
+        onto random vectors.
+        - list (or an array-like) of p integers - manually selected initial points, can
+        be output of another endmember extraction method, e.g. VCA
+
+    iter_max : int, default=10
+        Maximum number of outer loops.
+
+    n_init : int, default=1
+        Number of initializations to try. The final result will be the best output of
+        all initializations. Ignored if specific initial endmember indices provided.
+
+    tol : float, default=1e-8
+        Tolerance for the volume change. If the relative volume change is smaller than
+        this value, the replacement is not made.
 
     random_state : int, RandomState instance or None, default=None
         Pass an int for reproducible results across multiple function calls.
@@ -182,10 +309,7 @@ class NFINDR(OneToOneFeatureMixin, TransformerMixin, BaseEstimator):
     Attributes
     ----------
     endmembers_ : ndarray of shape (n_endmembers, n_endmembers-1)
-        Matrix of vertex points found by NFINDR algorithm
-
-    initial_indices_ : List[int] of len (n_endmembers,)
-        List of initial points indices.
+        Matrix of vertex points found by NFINDR algorithm (in the reduced dimension!).
 
     endmember_indices_ : List[int] of len (n_endmembers,)
         List of final endmember points indices.
@@ -224,11 +348,19 @@ class NFINDR(OneToOneFeatureMixin, TransformerMixin, BaseEstimator):
     def __init__(
         self,
         n_endmembers=None,
-        initial_indices=None,
+        init: Union[None, str, List[int]] = "projections",
+        iter_max: int = 10,
+        n_init: int = 1,
+        # keep_replacements: bool = False,
+        tol: float = 1e-8,
         random_state=None,
     ) -> None:
         self.n_endmembers = n_endmembers
-        self.initial_indices = initial_indices
+        self.init = init
+        self.iter_max = iter_max
+        self.n_init = n_init
+        # self.keep_replacements = keep_replacements
+        self.tol = tol
         self.random_state = random_state
 
     def fit(self, X, y=None):
@@ -249,7 +381,7 @@ class NFINDR(OneToOneFeatureMixin, TransformerMixin, BaseEstimator):
             Returns the instance itself.
         """
 
-        X = self._validate_data(X, dtype=[np.float64, np.float32], ensure_2d=True)
+        X = validate_data(self, X=X, dtype=[np.float64, np.float32], ensure_2d=True)
 
         n_samples, n_features = X.shape
 
@@ -267,19 +399,20 @@ class NFINDR(OneToOneFeatureMixin, TransformerMixin, BaseEstimator):
                 "Please consider reducing the number of components"
             )
 
-        if self.initial_indices is None:
-            random_state: np.random.RandomState = check_random_state(self.random_state)
-            initial_indices = random_state.choice(
-                range(n_samples), n_endmembers, replace=False
-            )
-        else:
-            initial_indices = self.initial_indices
-
-        endmember_indices = nfindr(X[:, : (n_endmembers - 1)], initial_indices)
+        endmember_indices = nfindr(
+            X[:, : (n_endmembers - 1)],
+            init=self.init,
+            iter_max=self.iter_max,
+            n_init=self.n_init,
+            # keep_replacements=self.keep_replacements,
+            keep_replacements=False,
+            tol=self.tol,
+            random_state=self.random_state,
+        )
         self.endmember_indices_ = endmember_indices
         self.endmembers_ = X[endmember_indices, :]
         self.n_endmembers_ = n_endmembers
-        self.initial_indices_ = list(initial_indices)
+        # self.initial_indices_ = list(initial_indices)
         self.n_samples_ = n_samples
         self.volume_ = simplex_volume(self.endmembers_)
 
@@ -317,7 +450,7 @@ class NFINDR(OneToOneFeatureMixin, TransformerMixin, BaseEstimator):
         """
         check_is_fitted(self)
 
-        X = self._validate_data(X, dtype=[np.float64, np.float32], reset=False)
+        X = validate_data(self, X=X, dtype=[np.float64, np.float32], reset=False)
         A = self.endmembers_.T
 
         if method == "barycentric":

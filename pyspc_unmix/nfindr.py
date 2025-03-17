@@ -65,7 +65,7 @@ def _estimate_volume_change(
     return np.abs(ratios)
 
 
-def _init_random(x: np.ndarray, random_state=None) -> List[int]:
+def _init_random(x: np.ndarray, random_state=None) -> np.ndarray:
     """Initialize NFINDR with random points"""
     m = x.shape[0]
     n = x.shape[1]
@@ -74,7 +74,7 @@ def _init_random(x: np.ndarray, random_state=None) -> List[int]:
     return random_state.choice(m, p, replace=False)
 
 
-def _init_projections(x: np.ndarray, random_state=None) -> List[int]:
+def _init_projections(x: np.ndarray, random_state=None) -> np.ndarray:
     """Initialize NFINDR with projections of data onto random vectors"""
     n = x.shape[1]
     p = n + 1
@@ -91,7 +91,7 @@ def _init_projections(x: np.ndarray, random_state=None) -> List[int]:
             ]
         )
 
-    return list(indices)[:p]
+    return np.array(list(indices)[:p])
 
 
 def _single_nfindr_run(

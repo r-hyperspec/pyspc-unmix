@@ -3,6 +3,7 @@ from typing import List, Optional, Union
 
 import numpy as np
 from numpy.typing import ArrayLike
+import scipy.linalg as la
 
 __all__ = [
     "simplex_volume",
@@ -134,7 +135,7 @@ def simplex_volume(x: ArrayLike, factorial: bool = True) -> float:
             "Unexpected array size. The simplex matrix must be of size Nx(N-1)"
         )
 
-    volume = np.linalg.det(_pad_ones(x))
+    volume = la.det(_pad_ones(x))
 
     if factorial:
         volume = volume / math.factorial(x.shape[1])
@@ -174,7 +175,7 @@ def cart2bary(x: ArrayLike, vertices: ArrayLike) -> np.ndarray:
         )
 
     A = vertices[:-1, :] - vertices[-1, :]
-    Ainv = np.linalg.inv(A.T)
+    Ainv = la.inv(A.T)
     bary_coefs = (x @ Ainv.T) - (vertices[-1, :] @ Ainv.T)
     bary_coefs = np.hstack((bary_coefs, 1 - bary_coefs.sum(axis=1).reshape((-1, 1))))
 

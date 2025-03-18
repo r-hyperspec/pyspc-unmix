@@ -4,6 +4,7 @@ from warnings import warn
 import numpy as np
 from numpy.typing import ArrayLike
 from scipy.optimize import lsq_linear, nnls
+import scipy.linalg as la
 from sklearn.base import BaseEstimator, OneToOneFeatureMixin, TransformerMixin
 from sklearn.utils import check_random_state
 from sklearn.utils.validation import check_is_fitted, validate_data
@@ -48,7 +49,7 @@ def _estimate_volume_change(
     x = np.array(x)
     if Einv is None:
         E = _simplex_E(x, indices)
-        Einv = np.linalg.inv(E)
+        Einv = la.inv(E)
 
     if endmembers is None:
         endmembers = range(len(indices))
@@ -60,6 +61,8 @@ def _estimate_volume_change(
     elif isinstance(new_indices, int):
         new_indices = [new_indices]
 
+    # NOTE: la.solve(E, _pad_ones(x[new_indices, :])[:, ems]) might be faster
+    # however, it would use more memory. Also, Einv is not reusable in that case.
     ratios = _pad_ones(x[new_indices, :]) @ Einv.T[:, endmembers]
 
     return np.abs(ratios)
@@ -107,7 +110,7 @@ def _single_nfindr_run(
     is_replacement = True
     indices_best = list(indices).copy()
     replacements = [indices_best.copy()]
-    Einv = np.linalg.inv(_simplex_E(x, indices_best))
+    Einv = la.inv(_simplex_E(x, indices_best))
     while (n_iters < iter_max) and is_replacement:
         n_iters += 1
         is_replacement = False
@@ -119,7 +122,7 @@ def _single_nfindr_run(
                 # Update current simplex vertices
                 i, _ = np.unravel_index(np.nanargmax(estimates), estimates.shape)
                 indices_best[j] = i
-                Einv = np.linalg.inv(_simplex_E(x, indices_best))
+                Einv = la.inv(_simplex_E(x, indices_best))
                 # Mark that a replacement took place
                 is_replacement = True
                 # For debugging

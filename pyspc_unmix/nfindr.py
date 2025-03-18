@@ -1,3 +1,4 @@
+import math
 from typing import List, Optional, Tuple, Union
 from warnings import warn
 
@@ -9,13 +10,51 @@ from sklearn.base import BaseEstimator, OneToOneFeatureMixin, TransformerMixin
 from sklearn.utils import check_random_state
 from sklearn.utils.validation import check_is_fitted, validate_data
 
-from .simplex import _pad_ones, _simplex_E, cart2bary, simplex_volume
+from .simplex import _simplex_E, cart2bary, simplex_volume
 
 __all__ = ["nfindr", "NFINDR"]
 
 
-def _estimate_volume_change(
-    x: ArrayLike,
+def _estimate_by_volume(
+    x: np.ndarray,
+    indices: List[int],
+    endmembers: Optional[Union[int, List[int]]] = None,
+    new_indices: Optional[Union[int, List[int]]] = None,
+    factorial: bool = False,
+    relative: bool = True,
+) -> np.ndarray:
+    """Estimate volume change using the precise volume calculation
+
+    Mainly for testing purposes"""
+    if endmembers is None:
+        endmembers = list(range(len(indices)))
+    elif isinstance(endmembers, int):
+        endmembers = [endmembers]
+
+    if new_indices is None:
+        new_indices = list(range(x.shape[0]))
+    elif isinstance(new_indices, int):
+        new_indices = [new_indices]
+
+    n_points = len(new_indices)
+    n_endmembers = len(endmembers)
+    volumes = np.empty((n_points, n_endmembers), dtype=float)
+    for i in range(n_points):
+        for j in range(n_endmembers):
+            candidate_indices = indices.copy()
+            candidate_indices[endmembers[j]] = new_indices[i]
+            volumes[i, j] = simplex_volume(x[candidate_indices, :], factorial=False)
+
+    if relative:
+        volumes /= simplex_volume(x[indices, :], factorial=False)
+    elif factorial:
+        volumes /= math.factorial(x.shape[1])
+
+    return np.abs(volumes)
+
+
+def _estimate_by_cramer(
+    x: np.ndarray,
     indices: List[int],
     endmembers: Optional[Union[int, List[int]]] = None,
     new_indices: Optional[Union[int, List[int]]] = None,
@@ -25,7 +64,7 @@ def _estimate_volume_change(
 
     Parameters
     ----------
-    x : ArrayLike
+    x : np.ndarray
         Matrix of M points in N-dimensional space
     indices : List[int]
         N+1 indices of the initial endmembers
@@ -46,7 +85,6 @@ def _estimate_volume_change(
         j-th endmember would be replaced by i-th point. The calculated value is the
         new volume divided by old (initial) volume.
     """
-    x = np.array(x)
     if Einv is None:
         E = _simplex_E(x, indices)
         Einv = la.inv(E)
@@ -61,9 +99,11 @@ def _estimate_volume_change(
     elif isinstance(new_indices, int):
         new_indices = [new_indices]
 
+    # Same as:
+    # ratios = _pad_ones(x[new_indices, :]) @ Einv.T[:, endmembers]
     # NOTE: la.solve(E, _pad_ones(x[new_indices, :])[:, ems]) might be faster
     # however, it would use more memory. Also, Einv is not reusable in that case.
-    ratios = _pad_ones(x[new_indices, :]) @ Einv.T[:, endmembers]
+    ratios = Einv[endmembers, 0] + x[new_indices, :] @ Einv[endmembers, 1:].T
 
     return np.abs(ratios)
 
@@ -115,9 +155,7 @@ def _single_nfindr_run(
         n_iters += 1
         is_replacement = False
         for j in range(p):
-            estimates = _estimate_volume_change(
-                x, indices_best, endmembers=j, Einv=Einv
-            )
+            estimates = _estimate_by_cramer(x, indices_best, endmembers=j, Einv=Einv)
             if any(estimates > (1 + tol)):
                 # Update current simplex vertices
                 i, _ = np.unravel_index(np.nanargmax(estimates), estimates.shape)

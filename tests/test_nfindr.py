@@ -5,7 +5,8 @@ import pytest
 
 from pyspc_unmix.nfindr import (
     NFINDR,
-    _estimate_volume_change,
+    _estimate_by_cramer,
+    _estimate_by_volume,
     nfindr,
     _init_random,
     _init_projections,
@@ -46,6 +47,14 @@ def replacement_volumes(points_2d):
     return volumes
 
 
+@pytest.fixture
+def simplex_points():
+    vertices = [[-5, 0], [0, 4], [10, 0]]
+    initial_points = [[0, 0], [-1, 0], [0, 1]]
+    data = np.vstack([initial_points, vertices, _inner_simplex_points(vertices)])
+    return data
+
+
 @pytest.mark.parametrize(
     "endmembers,new_indices",
     [(None, None), (None, 1), (1, None), (1, 1), ([0, 1], [2, 3])],
@@ -55,11 +64,15 @@ def test_volume_change_estimator(
 ):
     m = points_2d.shape[0]
     p = points_2d.shape[1] + 1
-    indices = range(3)
-    V = replacement_volumes[0, 0]
+    indices = list(range(3))
 
-    estimates = _estimate_volume_change(
-        points_2d, indices, endmembers=endmembers, new_indices=new_indices
+    estimates = _estimate_by_volume(
+        points_2d,
+        indices,
+        endmembers=endmembers,
+        new_indices=new_indices,
+        relative=False,
+        factorial=True,
     )
 
     if endmembers is None:
@@ -73,15 +86,39 @@ def test_volume_change_estimator(
         new_indices = [new_indices]
     ref_volumes = replacement_volumes[np.ix_(new_indices, endmembers)]
 
-    np.testing.assert_array_almost_equal(V * estimates, ref_volumes)
+    np.testing.assert_array_almost_equal(estimates, ref_volumes)
 
 
-@pytest.fixture
-def simplex_points():
-    vertices = [[-5, 0], [0, 4], [10, 0]]
-    initial_points = [[0, 0], [-1, 0], [0, 1]]
-    data = np.vstack([initial_points, vertices, _inner_simplex_points(vertices)])
-    return data
+@pytest.mark.parametrize(
+    "endmembers,new_indices",
+    [(None, None), (None, 1), (1, None), (1, 1), ([0, 1], [2, 3])],
+)
+def test_volume_change_estimator_larger_matrix(simplex_points, endmembers, new_indices):
+    indices_best = _init_random(simplex_points, random_state=42)
+    cramer_dv = _estimate_by_cramer(
+        simplex_points, indices_best, endmembers=endmembers, new_indices=new_indices
+    )
+    real_dv = _estimate_by_volume(
+        simplex_points,
+        indices_best,
+        endmembers=endmembers,
+        new_indices=new_indices,
+        relative=True,
+        factorial=False,
+    )
+
+    if endmembers is None:
+        endmembers = range(3)
+    elif isinstance(endmembers, int):
+        endmembers = [endmembers]
+
+    if new_indices is None:
+        new_indices = range(len(simplex_points))
+    elif isinstance(new_indices, int):
+        new_indices = [new_indices]
+
+    assert cramer_dv.shape == (len(new_indices), len(endmembers))
+    np.testing.assert_array_almost_equal(cramer_dv, real_dv)
 
 
 def test_nfindr(simplex_points):

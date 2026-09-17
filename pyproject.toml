@@ -1,6 +1,6 @@
 [project]
 name = "pyspc-unmix"
-version = "0.5.0"
+version = "0.5.1"
 description = "Python package for unmixing hyperspectral data"
 authors = [{ name = "Rustam Giuliev", email = "glvrst@gmail.com" }]
 license = { text = "MIT" }

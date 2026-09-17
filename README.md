@@ -1,7 +1,28 @@
 <!-- badges: start -->
-[![Project Status: WIP – Initial development is in progress, but there has not yet been a stable, usable release suitable for the public.](https://www.repostatus.org/badges/latest/wip.svg)](https://www.repostatus.org/#wip)
+[![Project Status: Active – The project has reached a stable, usable state and is being actively developed.](https://www.repostatus.org/badges/latest/active.svg)](https://www.repostatus.org/#active)
 ![Supports Python 3.12 and higher](https://img.shields.io/badge/Python-3.12%2B-brightgreen?style=flat&logo=python)
 <!-- badges: end -->
+
+> [!NOTE]
+> If you use `pyspc-unmix` in your research, please cite our accompanying paper:
+> Guliev, R. R., Neugebauer, U., & Beleites, C. (2026). Unraveling N-FINDR: A generalization of geometrical linear unmixing approaches under the pure pixel assumption. *Analytica Chimica Acta*, 1413, 345646. https://doi.org/10.1016/j.aca.2026.345646
+
+```bibtex
+@article{Guliev2026,
+  title = {Unraveling {N-FINDR}: A generalization of geometrical linear unmixing approaches under the pure pixel assumption},
+  volume = {1413},
+  ISSN = {0003-2670},
+  url = {http://dx.doi.org/10.1016/j.aca.2026.345646},
+  DOI = {10.1016/j.aca.2026.345646},
+  journal = {Analytica Chimica Acta},
+  publisher = {Elsevier BV},
+  author = {Guliev,  Rustam R. and Neugebauer,  Ute and Beleites,  Claudia},
+  year = {2026},
+  month = sep,
+  pages = {345646}
+}
+```
+
 
 `pyspc-unmix`: Python package for unmixing hyperspectral data
 ==============

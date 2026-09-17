@@ -1,0 +1,28 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite the academic paper below."
+authors:
+  - family-names: "Guliev"
+    given-names: "Rustam R."
+  - family-names: "Neugebauer"
+    given-names: "Ute"
+  - family-names: "Beleites"
+    given-names: "Claudia"
+title: "pyspc-unmix"
+version: "0.5.1"
+url: "https://github.com/r-hyperspec/pyspc-unmix"
+preferred-citation:
+  type: article
+  authors:
+    - family-names: "Guliev"
+      given-names: "Rustam R."
+    - family-names: "Neugebauer"
+      given-names: "Ute"
+    - family-names: "Beleites"
+      given-names: "Claudia"
+  title: "Unraveling N-FINDR: A generalization of geometrical linear unmixing approaches under the pure pixel assumption"
+  journal: "Analytica Chimica Acta"
+  volume: 1413
+  start: "345646"
+  year: 2026
+  month: 9
+  doi: "10.1016/j.aca.2026.345646"
